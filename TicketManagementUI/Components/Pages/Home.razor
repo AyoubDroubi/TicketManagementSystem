@@ -1,0 +1,200 @@
+﻿@page "/"
+@using Infrastructure.Common
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+@rendermode InteractiveServer
+
+@inject ITicketService ticketService
+
+
+<PageTitle>Home</PageTitle>
+<SectionContent SectionName="page-title">Dashboard</SectionContent>
+
+<style>
+	.dashboard-status {
+		border: 1px solid #eaeaea;
+		text-decoration: none;
+		color: var(--black);
+		border-radius: 5px;
+	}
+
+		.dashboard-status .header {
+			padding: 12px;
+			border-bottom: 1px solid #eaeaea;
+		}
+
+		.dashboard-status .body {
+			padding: 12px;
+		}
+
+	.summary {
+		border: 1px solid #eaeaea;
+		padding: 20px;
+		text-decoration: none;
+		color: var(--black);
+		border-radius: 5px;
+		cursor: pointer;
+	}
+
+		.summary .counter {
+			font-size: 1.5rem;
+			font-weight: 400;
+		}
+
+		.summary:hover {
+			color: var(--dark-green);
+			border: 1px solid var(--dark-green);
+			transition: border-color 0.5s ease;
+			transition: color 0.5s ease;
+		}
+</style>
+
+<div class="container mt-3">
+	<div class="row">
+		<div class="col">
+			<a href="/ticket?filterStatus=NEW">
+				<div class="summary">
+					<div class="title">New</div>
+					<div class="counter">@NewCount</div>
+				</div>
+			</a>
+		</div>
+		<div class="col">
+			<a href="/ticket?filterStatus=OPEN">
+				<div class="summary">
+					<div class="title">Open</div>
+					<div class="counter">@OpenCount</div>
+				</div>
+			</a>
+		</div>
+		<div class="col">
+			<a href="/ticket?filterStatus=CLOSED">
+				<div class="summary">
+					<div class="title">Closed</div>
+					<div class="counter">@ClosedCount</div>
+				</div>
+			</a>
+		</div>
+		<div class="col">
+			<a href="/ticket">
+				<div class="summary">
+					<div class="title">Total</div>
+					<div class="counter">@TotalCount</div>
+				</div>
+			</a>
+		</div>
+	</div>
+
+	<div class="row mt-3">
+		<div class="col-md-9">
+			<div class="dashboard-status">
+				<div class="header">
+					<div class="title">Last 12 Months Tickets</div>
+				</div>
+				<div class="body">
+					<MudChart ChartType="ChartType.Line"
+							  ChartSeries="@last12MonthSeries"
+							  ChartOptions="@last12MonthOptions"
+							  XAxisLabels="@last12MonthLabels"
+							  Width="100%">
+					</MudChart>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-3">
+			<div class="dashboard-status">
+				<div class="header">
+					<div class="title">
+						<Select @ref="categoryTypeDDL" Clearable="false" elements="categoryType" OnSelectChangedParent="HandleCategoryChartChange"></Select>
+					</div>
+					<div style="clear: both;"></div>
+				</div>
+				<div class="body">
+					<MudChart ChartType="ChartType.Pie"
+							  InputData="@chartByCategoryValue"
+							  InputLabels="@chartByCategoryLabel">
+					</MudChart>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+@code {
+
+
+	private List<ChartResponse> last12MonthTickets;
+	private List<ChartSeries> last12MonthSeries = new List<ChartSeries>();
+	private ChartOptions last12MonthOptions = new ChartOptions();
+	private string[] last12MonthLabels;
+
+
+	private List<ChartResponse> chartByCategory;
+	Select categoryTypeDDL;
+	private List<SelectItem> categoryType;
+	double[] chartByCategoryValue = { };
+	string[] chartByCategoryLabel = { };
+
+	private List<ChartResponse> summary;
+	private bool summaryInitialized;
+	private int NewCount;
+	private int OpenCount;
+	private int ClosedCount;
+	private int TotalCount;
+
+	protected override void OnInitialized()
+	{
+		last12MonthTickets = ticketService.Last12MonthTickets();
+
+		last12MonthSeries.Add(new ChartSeries
+			{
+				Name = "Last 12 Month Tickets",
+				Data = last12MonthTickets.Select(x => (double)x.Value).ToArray()
+			});
+
+		last12MonthOptions.YAxisTicks = 5;
+		last12MonthLabels = last12MonthTickets.Select(x => x.Label).ToArray();
+
+
+		categoryType = new List<SelectItem>
+		{
+			new SelectItem { Value = "Category", Text = "Category"},
+			new SelectItem { Value = "Product", Text = "Product"},
+			new SelectItem { Value = "Priority", Text = "Priority"},
+		};
+
+		chartByCategory = ticketService.ChartByCategory("Category");
+		chartByCategoryValue = chartByCategory.Select(x => (double)x.Value).ToArray();
+		chartByCategoryLabel = chartByCategory.Select(x => x.Label).ToArray();
+
+		summary = ticketService.GetSummary();
+	}
+
+	protected override void OnAfterRender(bool firstRender)
+	{
+		if (firstRender)
+		{
+			if (categoryTypeDDL.selectedValue == null)
+				categoryTypeDDL.selectedValue = "Category";
+
+
+			if (!summaryInitialized)
+			{
+				NewCount = summary.FirstOrDefault(x => x.Label == Constants.STATUS_NEW).Value;
+				OpenCount = summary.FirstOrDefault(x => x.Label == Constants.STATUS_OPEN).Value;
+				ClosedCount = summary.FirstOrDefault(x => x.Label == Constants.STATUS_CLOSED).Value;
+				TotalCount = summary.Sum(x => x.Value);
+			}
+
+			StateHasChanged();
+		}
+	}
+
+	private void HandleCategoryChartChange(string value)
+	{
+		chartByCategory = ticketService.ChartByCategory(value);
+		chartByCategoryValue = chartByCategory.Select(x => (double)x.Value).ToArray();
+		chartByCategoryLabel = chartByCategory.Select(x => x.Label).ToArray();
+	}
+}

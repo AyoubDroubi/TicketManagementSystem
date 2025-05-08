@@ -1,0 +1,148 @@
+﻿@using Domain.Interfaces
+@using Infrastructure.Common
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+
+@inject NavigationManager nav
+@inject IAccountService accountService
+@inject ProtectedSessionStorage ProtectedSessionStore
+
+@rendermode InteractiveServer
+
+<style>
+
+    .account-popup {
+        position: absolute;
+        top: 50px;
+        right: 40px;
+        width: 300px;
+        background-color: white;
+        border-radius: 15px;
+        box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        z-index: 9999;
+    }
+
+    .header {
+        display: flex;
+        align-items: center;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .profile-img {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        margin-right: 15px;
+    }
+
+
+    .profile-img-btn {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        cursor: pointer;
+    }
+
+    .user-info h2 {
+        font-size: 18px;
+        margin: 0;
+    }
+
+    .user-info p {
+        margin: 0;
+        color: #888;
+    }
+
+    .manage-account {
+        width: 100%;
+        padding: 15px;
+        margin: 5px 0;
+        background-color: #4285f4;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .account-img {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        margin-right: 10px;
+    }
+
+    .sign-out {
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+        background-color: #f5f5f5;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+</style>
+
+<img @onclick="ProfileToggle" src="@avatarSource" class="profile-img-btn">
+
+
+<MudOverlay @bind-Visible="showPopUp" LightBackground AutoClose="true" />
+
+<div hidden="@(!showPopUp)" class="account-popup">
+    <div class="header">
+        <img src="@avatarSource" alt="Profile Picture" class="profile-img">
+        <div class="user-info">
+            <h2>Hello!</h2>
+            <p>@email</p>
+        </div>
+    </div>
+    <button @onclick="@(() => NavigateTo("/avatar"))" class="manage-account">Change Avatar</button>
+    <button @onclick="@(() => NavigateTo("/changepassword"))" class="manage-account">Change Password</button>
+    <button @onclick="@(() => NavigateTo("/logout"))" class="sign-out">Sign out</button>
+</div>
+
+@code {
+    private bool showPopUp = false;
+    private string email;
+
+    string avatarPath = "uploads/avatars/";
+    string avatarSource;
+    string avatarFileName;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var avatar = await ProtectedSessionStore.GetAsync<string>("avatar");
+            if (avatar.Success && avatar.Value != null)
+            {
+                avatarFileName = avatar.Value;
+            } else
+            {
+                avatarFileName = Constants.DEFAULT_AVATAR;
+            }
+
+            avatarSource = Path.Combine(avatarPath, avatarFileName);
+
+            var email = await ProtectedSessionStore.GetAsync<string>("email");
+            if (email.Success)
+            {
+                this.email = email.Value;
+            }
+
+            StateHasChanged();
+        }
+    }
+
+    private void ProfileToggle()
+    {
+        showPopUp = !showPopUp;
+        StateHasChanged();
+    }
+
+    private void NavigateTo(string page)
+    {
+        ProfileToggle();
+        nav.NavigateTo(page, true);
+    }
+}

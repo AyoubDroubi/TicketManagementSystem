@@ -1,0 +1,81 @@
+﻿@using Domain.DTO.Request
+@using Infrastructure.Common
+@using TicketManagementUI.Extensions.Helpers
+
+@inject IAccountService accountService
+@inject ISnackbar Snackbar
+
+<MudDialog ContentStyle="width: 400px;">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            Add New User
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <Alert @ref="alert" />
+
+        @if (errors.Length > 0)
+        {
+            <MudItem>
+                <MudPaper Class="pa-4 mud-height-full">
+                    <MudText Typo="Typo.subtitle2">@($"Error found ({errors.Length})")</MudText>
+                    @foreach (var error in errors)
+                    {
+                        <MudText Color="@Color.Error">@error</MudText>
+                    }
+                </MudPaper>
+            </MudItem>
+        }
+        <div>
+            <MudTextField @bind-Value="@Email" Variant="Variant.Outlined" Label="Email" />
+        </div>
+        <div class="mt-2">
+            <Select @ref="RoleDDL" elements="@roles" placeholder="Role" />
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => MudDialog.Cancel()">Cancel</MudButton>
+        <MudButton Color="Color.Success" OnClick="RegisterUser">Register New User</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+    Alert alert;
+    string[] errors = { };
+
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; }
+
+    public string Email { get; set; }
+    public Select RoleDDL { get; set; }
+    List<SelectItem> roles = Constants.UserRoles.Select(x => new SelectItem { Text = x.Value, Value = x.Value }).ToList();
+
+    private async Task RegisterUser()
+    {
+        var request = new RegisterUserRequest
+        {
+            Email = Email,
+            Role = RoleDDL.selectedValue
+        };
+
+        ValidationHelpers validationHelper = new ValidationHelpers(request);
+        bool isValid = validationHelper.Validate();
+        errors = validationHelper.validationResults.Select(x => x.ErrorMessage).ToArray();
+
+        if (isValid)
+        {
+            var result = await accountService.RegisterUser(request);
+            if (result.IsSuccess)
+            {
+                Snackbar.Add("Register User Success!", Severity.Success);
+                MudDialog.Close();
+            } else
+            {
+                alert.ShowFailed(result.ErrorMessage);
+            }
+        }
+    }
+
+
+}

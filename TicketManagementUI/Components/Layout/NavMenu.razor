@@ -1,0 +1,32 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+<div class="d-block navbar text-center bg-white" style="padding: 1rem; font-size: 25px;color:#007D88">
+    <i class="fas fa-handshake-angle"></i>
+</div>
+
+<ul class="nav nav-pills nav-flush flex-column mb-auto text-center" style="padding:8px">
+
+    <li class="nav-item">
+        <NavLink class="nav-link d-flex justify-content-center" href="/" Match="NavLinkMatch.All">
+            <i class="fas fa-tachometer-alt"></i>
+        </NavLink>
+    </li>
+    <li class="nav-item">
+        <NavLink class="nav-link d-flex justify-content-center" href="/ticket/create">
+            <i class="fas fa-file-circle-plus"></i>
+        </NavLink>
+    </li>
+
+    <li class="nav-item">
+        <NavLink Match="NavLinkMatch.All" class="nav-link d-flex justify-content-center" href="ticket">
+            <i class="fas fa-tasks"></i>
+        </NavLink>
+    </li>
+
+    <AuthorizeView Roles="Admin">
+        <li class="nav-item">
+            <NavLink Match="NavLinkMatch.All" class="nav-link d-flex justify-content-center" href="user">
+                <i class="fas fa-user-gear"></i>
+            </NavLink>
+        </li>
+    </AuthorizeView>
+</ul>

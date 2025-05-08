@@ -1,0 +1,76 @@
+﻿@using Domain.DTO.Response
+@using Domain.Interfaces
+@using Infrastructure.Common
+@using TicketManagementUI.Extensions
+
+<style>
+    .discussion {
+        background-color: #e1f0f1;
+        padding: 20px;
+        border-radius: 15px;
+    }
+</style>
+
+<div style="padding:10px">
+    <p style="font-size:20px">@Discussions.Count Reply</p>
+</div>
+
+<div>
+    @foreach (var item in Discussions)
+    {
+        <div class="discussion mt-5">
+            <table class="mt-2">
+                <tr>
+                    <td rowspan="2">
+                        <MudImage Src="@(Path.Combine("uploads", "avatars", item.User.Avatar ?? Constants.DEFAULT_AVATAR))"
+                                  Width="50" Height="50" Elevation="25" Style="border-radius:5px" />
+                    </td>
+                    <td>
+                        <span class="ms-3">
+                            <strong>@item.User.Email</strong>
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <span class="ms-3">
+                            @item.CreatedDate.BeautifyDate()
+                        </span>
+                    </td>
+                </tr>
+            </table>
+            <div class="mt-4">
+                @((MarkupString)item.Message)
+            </div>
+            @if (item.Attachments.Count > 0)
+            {
+                <div class="attachment mt-5">
+                    <div>
+                        <strong>Attachments</strong>
+                    </div>
+                    <div class="mt-2">
+                        <MudGrid>
+                            @foreach (var item in item.Attachments)
+                            {
+                                <MudItem>
+                                    <MudButton Download="@item.FileName"
+                                               Href="@item.ServerFileName"
+                                               Variant="Variant.Outlined"
+                                               StartIcon="@Icons.Material.Filled.CloudDownload"
+                                               Color="Color.Primary">
+                                        @item.FileName
+                                    </MudButton>
+                                </MudItem>
+                            }
+                        </MudGrid>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public List<DiscussionResponse> Discussions { get; set; }
+}

@@ -1,0 +1,284 @@
+﻿@page "/ticket/details/{ticketid:int}"
+@using Domain.DTO.Request
+@using Infrastructure.Common
+@using Microsoft.AspNetCore.Authorization
+@using TicketManagementUI.Components.Pages.Ticket.Discussion
+@using TicketManagementUI.Extensions.Helpers
+
+@attribute [Authorize]
+
+@inject ITicketService ticketService
+@inject IAccountService accountService
+@inject ICriteriaService criteriaService
+@inject IDiscussionService discussionService
+@inject NavigationManager nav
+
+@rendermode InteractiveServer
+
+<style>
+    .head-panel {
+        background-color: var(--light-green);
+        padding: 10px;
+        margin-top: -1.1rem;
+    }
+
+    .discussion-panel {
+        height: 85vh;
+        overflow-y: scroll;
+    }
+
+    .ticket-info {
+        padding: 20px;
+    }
+
+    .action-panel {
+        border-left: 1px solid var(--dark);
+    }
+</style>
+
+<div class="head-panel">
+    <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" @onclick="BackToTicketList" Variant="Variant.Filled" Color="Color.Primary">
+        <MudText>Back to list</MudText>
+    </MudButton>
+    <MudButton Disabled="IsClosed" StartIcon="@Icons.Material.Filled.CheckCircle" @onclick="CloseTicket" Variant="Variant.Filled" Color="Color.Error">
+        <MudText>Close</MudText>
+    </MudButton>
+</div>
+
+<SectionContent SectionName="page-title">Ticket ID: @Ticket.TicketIdView</SectionContent>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-10 mt-3 p-3 discussion-panel">
+            <div class="ticket-info">
+                <p style="font-size:25px">@Ticket.Summary</p>
+
+                <table class="mt-2">
+                    <tr>
+                        <td rowspan="2">
+                            <MudImage Src="@Path.Combine("uploads", "avatars", Ticket.RaisedByAvatar ?? Constants.DEFAULT_AVATAR)"
+                                      Width="50" Height="50" Style="border-radius:5px" />
+                        </td>
+                        <td>
+                            <span class="ms-3">
+                                <strong>@Ticket.RaisedByName</strong>
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+
+                            <span class="ms-3">
+                                @Ticket.CreatedDate.BeautifyDate()
+                            </span>
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="mt-4">
+                    @((MarkupString)Ticket.Description)
+                </div>
+
+                @if(Ticket.Attachments.Count > 0)
+                {
+                    <div class="attachment mt-5">
+                        <div>
+                            <strong>Attachments</strong>
+                        </div>
+                        <div class="mt-2">
+                            <MudGrid>
+                                @foreach (var item in Ticket.Attachments)
+                                {
+                                    <MudItem>
+                                        <MudButton Download="@item.FileName"
+                                                    Href="@item.ServerFileName"
+                                                   Variant="Variant.Outlined"
+                                                   StartIcon="@Icons.Material.Filled.CloudDownload"
+                                                   Color="Color.Primary">
+                                            @item.FileName
+                                        </MudButton>
+                                    </MudItem>
+                                }
+                            </MudGrid>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <hr />
+            <CreateDiscussion TicketId="ticketId" OnNotifyParent="RefreshDiscussion" />
+
+            <hr />
+            <ViewDiscussions Discussions="discussions" />
+        </div>
+        <div class="col-sm-2 action-panel">
+            <MudStack Style="width: 100%" class="mt-5">
+                <Alert @ref="alert"></Alert>
+                @if (errors.Length > 0)
+                {
+                    <MudItem>
+                        <MudPaper Class="pa-4 mud-height-full">
+                            <MudText Typo="Typo.subtitle2">@($"Error found ({errors.Length})")</MudText>
+
+                            @foreach (var error in errors)
+                            {
+                                <MudText Color="@Color.Error">@error</MudText>
+                            }
+                        </MudPaper>
+                    </MudItem>
+                }
+                <MudButton Variant="Variant.Filled"
+                           FullWidth="true" 
+                            EndIcon="@Icons.Material.Filled.Save" 
+                            Color="Color.Primary"
+                            @onclick="Update">
+                            Update Ticket
+                    </MudButton>
+                <MudTextField T="string" ReadOnly="true" Text="@Ticket.ExpectedDate.BeautifyDate()" Label="Expected Completion Date" Variant="Variant.Outlined"></MudTextField>
+                @if (IsClosed)
+                {
+                    <MudTextField T="string" ReadOnly="true" Text="@Ticket.ClosedBy" Label="Closed By" Variant="Variant.Outlined"></MudTextField>
+                    <MudTextField T="string" ReadOnly="true" Text="@Ticket.ClosedDate.Value.BeautifyDate()" Label="Closed Date" Variant="Variant.Outlined"></MudTextField>
+                }
+                <Select @ref="productDDL" elements="products" label="Product"></Select>
+                <Select @ref="categoryDDL" elements="categories" label="Category"></Select>
+                <Select @ref="assignDDL" elements="users" label="Assign"></Select>
+                <Select @ref="priorityDDL" elements="priorities" label="Priority"></Select>
+                <Select @ref="statusDDL" elements="status" label="Status"></Select>
+            </MudStack>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int ticketId { get; set; }
+
+    private GetTicketResponse Ticket; 
+
+    Select productDDL;
+    Select priorityDDL;
+    Select categoryDDL;
+    Select statusDDL;
+    Select assignDDL;
+
+    private List<SelectItem> products;
+    private List<SelectItem> priorities;
+    private List<SelectItem> categories;
+    private List<SelectItem> status;
+    private List<SelectItem> users;
+    private List<DiscussionResponse> discussions;
+
+    private bool IsClosed = false;
+    private Alert alert;
+    private string[] errors = { };
+
+    protected override Task OnInitializedAsync()
+    {
+        Ticket = ticketService.FindTicket(ticketId);
+        InitializeDropdown();
+        discussions = discussionService.GetDiscussions(ticketId);
+
+        return Task.CompletedTask;
+    }
+
+    private void RefreshDiscussion()
+    {
+        discussions = discussionService.GetDiscussions(ticketId);
+        StateHasChanged();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            AssignTicketValue();
+        }
+    }
+
+    private void AssignTicketValue()
+    {
+        productDDL.selectedValue = Ticket.ProductId.ToString();
+        priorityDDL.selectedValue = Ticket.PriorityId.ToString();
+        categoryDDL.selectedValue = Ticket.CategoryId.ToString();
+        statusDDL.selectedValue = Ticket.Status.ToString();
+
+        if (Ticket.ExpectedDate < DateTime.Now && Ticket.Status != Constants.STATUS_CLOSED)
+        {
+            alert.ShowFailed("This ticket is overdue!");
+        }
+
+        if (Ticket.AssignedToId != null)
+        {
+            assignDDL.selectedValue = Ticket.AssignedToId.ToString();
+        }
+
+        if (Ticket.Status == Constants.STATUS_CLOSED) IsClosed = true;
+
+        StateHasChanged();
+    }
+
+    private void InitializeDropdown()
+    {
+        products = criteriaService.GetProducts()
+            .Select(x => new SelectItem { Value = x.ProductId.ToString(), Text = x.ProductName })
+            .ToList();
+
+
+        priorities = criteriaService.GetPriorities()
+                    .Select(x => new SelectItem { Value = x.PriorityId.ToString(), Text = x.PriorityName })
+                    .ToList();
+
+        categories = criteriaService.GetCategories()
+                    .Select(x => new SelectItem { Value = x.CategoryId.ToString(), Text = x.CategoryName })
+                    .ToList();
+
+
+        status = criteriaService.GetStatus().Select(x => new SelectItem { Value = x, Text = x }).ToList();
+
+        users = accountService.GetUsers().Select(x => new SelectItem { Value = x.Id, Text = x.Email }).ToList();
+    }
+
+    private void BackToTicketList()
+    {
+        nav.NavigateTo("/ticket");
+    }
+
+    private async Task CloseTicket()
+    {
+        statusDDL.selectedValue = Constants.STATUS_CLOSED;
+        await Update();
+    }
+
+    private async Task Update()
+    {
+        var request = new UpdateTicketRequest
+            {
+                TicketId = Ticket.TicketId,
+                ProductId = productDDL.selectedValue.ToNullableInteger(),
+                CategoryId = categoryDDL.selectedValue.ToNullableInteger(),
+                PriorityId = priorityDDL.selectedValue.ToNullableInteger(),
+                AssignedToId = assignDDL.selectedValue,
+                Status = statusDDL.selectedValue
+            };
+
+        ValidationHelpers validationHelper = new ValidationHelpers(request);
+        bool isValid = validationHelper.Validate();
+        errors = validationHelper.validationResults.Select(x => x.ErrorMessage).ToArray();
+
+        //ada error pas di compile
+        if (isValid)
+        {
+            var result = await ticketService.UpdateTicket(request);
+            if (result.IsSuccess)
+            {
+                alert.ShowSuccess("Successfully update the ticket!");
+
+                Ticket = ticketService.FindTicket(ticketId);
+                AssignTicketValue();
+            } else
+            {
+                alert.ShowFailed("Failed: " + result.ErrorMessage);
+            }
+        }
+    }
+}

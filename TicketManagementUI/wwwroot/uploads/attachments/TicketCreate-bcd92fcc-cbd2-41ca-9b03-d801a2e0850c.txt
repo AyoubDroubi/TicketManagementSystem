@@ -1,0 +1,128 @@
+@page "/ticket/create"
+<MudPopoverProvider />
+<SectionContent SectionName="page-title">Create a New Ticket</SectionContent>
+
+<style>
+    .head-panel {
+        background-color: var(--light-green);
+        padding: 10px;
+    }
+
+    .discussion-panel {
+        height: 85vh;
+        overflow-y: scroll;
+    }
+
+    .ticket-info {
+        padding: 10px;
+    }
+
+
+    .action-panel {
+        border-left: 1px solid var(--dark);
+    }
+</style>
+<div class="head-panel">
+    <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" @onclick="BackToTicketList" Variant="Variant.Filled" Color="Color.Primary">
+        <MudText>Back to list</MudText>
+    </MudButton>
+</div>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-10 mt-2 discussion-panel">
+            <div class="ticket-info">
+                <div>
+                    <MudTextField T="string" @ref="summary" Label="Summary" Variant="Variant.Text"></MudTextField>
+                </div>
+                    <MudExRichTextEdit @ref="@descriptionEditor"
+                                   Height="444"
+                                   Class="mt-3"
+                                   Required="true" RequiredError="Ticket Description is required!"
+                                   Placeholder="Description">
+                        <ToolbarContent>
+                            <select class="ql-header">
+                                <option selected=""></option>
+                                <option value="1"></option>
+                                <option value="2"></option>
+                                <option value="3"></option>
+                                <option value="4"></option>
+                                <option value="5"></option>
+                            </select>
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <select class="ql-color"></select>
+                                <select class="ql-background"></select>
+                            </span>
+                            <span class="ql-formats">
+                                <button class="ql-list" value="ordered"></button>
+                                <button class="ql-list" value="bullet"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <button class="ql-link"></button>
+                            </span>
+                        </ToolbarContent>
+                </MudExRichTextEdit>
+
+                <div class="mt-3">
+                    <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="UploadFiles">
+                        <ActivatorContent>
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.CloudUpload">
+                                Attachments
+                            </MudButton>
+                        </ActivatorContent>
+                    </MudFileUpload>
+                    @if (files.Count > 0)
+                    {
+                        <MudText Typo="@Typo.h6">@files.Count() File@(files.Count() == 1 ? "" : "s"):</MudText>
+                        <MudList T="string">
+                            @foreach (var file in files)
+                            {
+                                <MudListItem Icon="@Icons.Material.Filled.AttachFile" @key="@file">
+                                    @file.Name <code>@file.Size bytes</code>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    }
+                </div>
+
+            </div>
+        </div>
+        <div class="col-sm-2 action-panel">
+            <MudStack Style="width: 100%" class="mt-5">
+                <Alert @ref="alert"></Alert>
+                @if(errors.Length > 0)
+                {
+                    <MudItem>
+                        <MudPaper Class="pa-4 mud-height-full">
+                                <MudText Typo="Typo.subtitle2">@($"Error found ({errors.Length})")</MudText>
+
+                            @foreach (var error in errors)
+                            {
+                                <MudText Color="@Color.Error">@error</MudText>
+                            }
+                        </MudPaper>
+                    </MudItem>
+                }
+                <MudButton @onclick="CreateTicket" Variant="Variant.Filled"
+                        FullWidth="true"
+                        EndIcon="@Icons.Material.Filled.Save"
+                        Color="Color.Primary">
+                    Create Ticket
+                </MudButton>
+                <Select @ref="productDDL" elements="products" label="Product"></Select>
+                <Select @ref="categoryDDL" elements="categories" label="Category" ></Select>
+                <Select @ref="assignDDL" elements="users" label="Assign to" ></Select>
+                <Select @ref="priorityDDL" elements="priorities" label="Priority"></Select>
+            </MudStack>
+        </div>
+    </div>
+</div>
+

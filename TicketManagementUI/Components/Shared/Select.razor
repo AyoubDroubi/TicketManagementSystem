@@ -1,0 +1,33 @@
+﻿<MudSelect T="string"
+           Value="selectedValue"
+           Variant="Variant.Outlined"
+           Placeholder="@placeholder"
+           Label="@label"
+           Disabled="@Disabled"
+           Clearable="@Clearable"
+           ValueChanged="OnSelectChanged"
+>
+
+    @foreach (var element in elements)
+    {
+        <MudSelectItem Value="@element.Value">@element.Text</MudSelectItem>
+    }
+</MudSelect>
+
+
+@code {
+    [Parameter] public string label { get; set; }
+    [Parameter] public string placeholder { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public bool Clearable { get; set; } = true;
+    [Parameter] public List<SelectItem> elements { get; set; }
+    [Parameter] public EventCallback<string> OnSelectChangedParent { get; set; }
+
+    public string selectedValue;
+
+    private void OnSelectChanged(string value)
+    {
+        selectedValue = value;
+        OnSelectChangedParent.InvokeAsync(value);
+    }
+}

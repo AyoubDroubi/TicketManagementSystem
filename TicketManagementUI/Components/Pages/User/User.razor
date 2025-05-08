@@ -1,0 +1,104 @@
+﻿@page "/user"
+@using Microsoft.AspNetCore.Authorization
+
+@attribute [Authorize(Roles = "Admin")]
+
+@inject IDialogService DialogService
+@inject IJSRuntime JsRuntime
+@inject ISnackbar SnackBar
+@inject IAccountService accountService
+
+@rendermode InteractiveServer
+
+<SectionContent SectionName="page-title">User Managements</SectionContent>
+
+<style>
+    .mud-elevation-1 {
+        box-shadow: none !important;
+    }
+</style>
+
+<MudButton Class="mt-2 ms-2" Color="Color.Primary" Variant="Variant.Filled" OnClick="AddNewUser">Add New User</MudButton>
+
+<MudDataGrid @ref="dataGrid"
+             SortMode="@SortMode.None"
+             T="GetUserResponse"
+             ServerData="ServerReload">
+    <Columns>
+        <PropertyColumn Property="x => x.Email" />
+        <PropertyColumn Property="x => x.Role" />
+        <PropertyColumn Property="x => x.AccountConfirmed">
+            <CellTemplate>
+                @if (context.Item.AccountConfirmed)
+                {
+                    <span>Yes</span>
+                }
+                else
+                {
+                    <span>No</span>
+                }
+            </CellTemplate>
+        </PropertyColumn>
+        <TemplateColumn CellClass="d-flex justify-end">
+            <CellTemplate>
+                <MudButton Size="@Size.Small" Variant="@Variant.Filled" OnClick="@(() => this.RemoveUser(context))" StartIcon="@Icons.Material.Filled.Delete" Color="@Color.Error">Remove User</MudButton>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <PagerContent>
+        <MudDataGridPager T="GetUserResponse" />
+    </PagerContent>
+</MudDataGrid>
+
+@code {
+    MudDataGrid<GetUserResponse> dataGrid;
+
+    private async Task<GridData<GetUserResponse>> ServerReload(GridState<GetUserResponse> state)
+    {
+        var data = accountService.GetUsers();
+        await Task.Delay(300);
+
+        var totalItems = data.Count();
+
+        var pagedData = data.Skip(state.Page * state.PageSize).Take(state.PageSize).ToArray();
+        return new GridData<GetUserResponse>
+            {
+                TotalItems = totalItems,
+                Items = pagedData
+            };
+    }
+
+    private async Task AddNewUser()
+    {
+        var options = new DialogOptions
+        {
+            BackdropClick = false
+        };
+
+        var dialog = await DialogService.ShowAsync<UserRegister>("Add New User", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await dataGrid.ReloadServerData();    
+        }
+    }
+
+    private async Task RemoveUser(CellContext<GetUserResponse> user)
+    {
+        bool confirmed = await JsRuntime.InvokeAsync<bool>("confirm", "Are you sure want to remove this user?");
+        if (confirmed)
+        {
+            var result = await accountService.RemoveUser(user.Item.Email);
+            if (result.IsSuccess)
+            {
+                SnackBar.Add("Successfully remove user", Severity.Success);
+                await dataGrid.ReloadServerData();
+            } 
+                else
+            {
+                SnackBar.Add("Failed remove user: " + result.ErrorMessage, Severity.Error);
+            }
+        }
+    }
+}

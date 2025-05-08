@@ -1,0 +1,122 @@
+﻿@using Domain.DTO.Request
+@using Domain.Interfaces
+@using MudExRichTextEditor
+
+@inject IDiscussionService discussionService
+@inject ISnackbar SnackBar
+
+<MudExRichTextEdit @ref="@descriptionEditor"
+                   Height="200"
+                   Class="mt-3"
+                   Required="true" RequiredError="Ticket Description is required!"
+                   Placeholder="Description">
+    <ToolbarContent>
+        <select class="ql-header">
+            <option selected=""></option>
+            <option value="1"></option>
+            <option value="2"></option>
+            <option value="3"></option>
+            <option value="4"></option>
+            <option value="5"></option>
+        </select>
+        <span class="ql-formats">
+            <button class="ql-bold"></button>
+            <button class="ql-italic"></button>
+            <button class="ql-underline"></button>
+            <button class="ql-strike"></button>
+        </span>
+        <span class="ql-formats">
+            <select class="ql-color"></select>
+            <select class="ql-background"></select>
+        </span>
+        <span class="ql-formats">
+            <button class="ql-list" value="ordered"></button>
+            <button class="ql-list" value="bullet"></button>
+        </span>
+        <span class="ql-formats">
+            <button class="ql-link"></button>
+        </span>
+    </ToolbarContent>
+</MudExRichTextEdit>
+
+<div class="mt-2">
+    <MudButton Variant="Variant.Filled"
+               EndIcon="@Icons.Material.Filled.Reply" Style="float:right;"
+               OnClick="ReplyClicked"
+               Color="Color.Primary">
+        Reply
+    </MudButton>
+    <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="UploadFiles">
+        <ActivatorContent>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.CloudUpload">
+                Attachments
+            </MudButton>
+        </ActivatorContent>
+    </MudFileUpload>
+
+    @if (files.Count > 0)
+    {
+        <MudText Typo="@Typo.h6">@files.Count() File@(files.Count() == 1 ? "" : "s"):</MudText>
+        <MudList T="string">
+            @foreach (var file in files)
+            {
+                <MudListItem Icon="@Icons.Material.Filled.AttachFile" @key="@file">
+                    @file.Name <code>@file.Size bytes</code>
+                </MudListItem>
+            }
+        </MudList>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int TicketId { get; set; }
+
+    [Parameter]
+    public EventCallback OnNotifyParent { get; set; }
+
+    MudExRichTextEdit descriptionEditor;
+
+    IList<IBrowserFile> files = new List<IBrowserFile>();
+    private void UploadFiles(IReadOnlyList<IBrowserFile> files)
+    {
+        foreach (var file in files)
+        {
+            this.files.Add(file);   
+        }
+    }
+
+    private async Task ReplyClicked()
+    {
+        var message = await descriptionEditor.GetText();
+        message = message.Trim();
+
+        if (string.IsNullOrEmpty(message))
+        {
+            SnackBar.Add("Please insert message before submitting the reply..", Severity.Error);
+            return;
+        }
+
+        CreateDiscussionRequest request = new CreateDiscussionRequest
+            {
+                Message = message,
+                TicketId = TicketId,
+                Attachments = files
+            };
+
+
+        var result = await discussionService.Create(request);
+        if (result.IsSuccess)
+        {
+            descriptionEditor.Value = string.Empty;
+            files.Clear();
+            await OnNotifyParent.InvokeAsync();
+            SnackBar.Add("Successfully submitting reply.", Severity.Success);
+        } else
+        {
+            SnackBar.Add("Failed submitting reply.", Severity.Error);
+        }
+    }
+}
