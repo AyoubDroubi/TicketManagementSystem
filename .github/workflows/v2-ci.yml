@@ -26,6 +26,20 @@ jobs:
     name: Build and test V2
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: ticketing_test
+          POSTGRES_PASSWORD: ticketing_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ticketing_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -42,4 +56,6 @@ jobs:
         run: dotnet build TicketManagementSystem.V2.slnx --configuration Release --no-restore
 
       - name: Test
+        env:
+          TEST_POSTGRES_CONNECTION_STRING: Host=localhost;Port=5432;Database=ticketing_test;Username=postgres;Password=ticketing_ci_only
         run: dotnet test TicketManagementSystem.V2.slnx --configuration Release --no-build
