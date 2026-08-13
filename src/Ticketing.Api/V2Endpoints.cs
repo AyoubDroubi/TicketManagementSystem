@@ -23,7 +23,7 @@ internal static class V2Endpoints
         {
             var workspace = await handler.HandleAsync(command, cancellationToken);
             return Results.Created($"/api/v2/workspaces/{workspace.Id}", workspace);
-        });
+        }).RequireAuthorization();
 
         endpoints.MapPost("/api/v2/tickets", async (
             CreateTicketCommand command,
@@ -32,7 +32,7 @@ internal static class V2Endpoints
         {
             var ticket = await handler.HandleAsync(command, cancellationToken);
             return Results.Created($"/api/v2/tickets/{ticket.Id}", ticket);
-        });
+        }).RequireAuthorization();
 
         endpoints.MapGet("/api/v2/tickets/{ticketId:guid}", async (
             Guid ticketId,
@@ -41,7 +41,7 @@ internal static class V2Endpoints
         {
             var ticket = await handler.HandleAsync(new GetTicketByIdQuery(ticketId), cancellationToken);
             return ticket is null ? Results.NotFound() : Results.Ok(ticket);
-        });
+        }).RequireAuthorization();
 
         return endpoints;
     }
