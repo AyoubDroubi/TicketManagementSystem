@@ -8,8 +8,11 @@ internal sealed class HttpWorkspaceContext(IHttpContextAccessor httpContextAcces
     {
         get
         {
-            var httpContext = httpContextAccessor.HttpContext
-                ?? throw new InvalidOperationException("Workspace context requires an active HTTP request.");
+            var httpContext = httpContextAccessor.HttpContext;
+            if (httpContext is null)
+            {
+                return Guid.Empty;
+            }
 
             var rawValue = httpContext.Request.Headers["X-Workspace-Id"].FirstOrDefault();
             if (!Guid.TryParse(rawValue, out var workspaceId) || workspaceId == Guid.Empty)
