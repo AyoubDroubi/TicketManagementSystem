@@ -8,6 +8,7 @@ namespace Ticketing.Application.Tickets.CreateTicket;
 
 public sealed class CreateTicketHandler
 {
+    private readonly ICurrentUser _currentUser;
     private readonly IWorkspaceContext _workspaceContext;
     private readonly IWorkspaceRepository _workspaceRepository;
     private readonly ITicketRepository _ticketRepository;
@@ -15,12 +16,14 @@ public sealed class CreateTicketHandler
     private readonly IClock _clock;
 
     public CreateTicketHandler(
+        ICurrentUser currentUser,
         IWorkspaceContext workspaceContext,
         IWorkspaceRepository workspaceRepository,
         ITicketRepository ticketRepository,
         IUnitOfWork unitOfWork,
         IClock clock)
     {
+        _currentUser = currentUser;
         _workspaceContext = workspaceContext;
         _workspaceRepository = workspaceRepository;
         _ticketRepository = ticketRepository;
@@ -43,7 +46,7 @@ public sealed class CreateTicketHandler
 
         var item = Ticket.Create(
             workspace.Id,
-            command.RequesterId,
+            _currentUser.UserId,
             command.Summary,
             command.Description,
             command.Priority,
