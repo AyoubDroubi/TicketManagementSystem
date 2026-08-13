@@ -2,6 +2,11 @@
 {
     public class Constants
     {
+        public static string DEFAULT_PASSWORD =>
+            Environment.GetEnvironmentVariable("TICKETING_LEGACY_TEMP_PASSWORD")
+            ?? throw new InvalidOperationException(
+                "Legacy user creation requires TICKETING_LEGACY_TEMP_PASSWORD to be configured outside source control.");
+
         public const string STATUS_OPEN = "OPEN";
         public const string STATUS_NEW = "NEW";
         public const string STATUS_CLOSED = "CLOSED";
