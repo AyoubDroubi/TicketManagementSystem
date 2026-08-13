@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Ticketing.Api.Tenancy;
 using Ticketing.Application.Abstractions;
 
@@ -9,6 +10,8 @@ internal static class ApiDependencyInjection
     {
         services.AddHttpContextAccessor();
         services.AddScoped<IWorkspaceContext, HttpWorkspaceContext>();
+        services.ConfigureHttpJsonOptions(options =>
+            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
         return services;
     }
 }
