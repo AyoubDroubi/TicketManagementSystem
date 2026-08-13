@@ -29,6 +29,11 @@ public sealed class Ticket : Entity<Guid>
         UpdatedAtUtc = createdAtUtc;
     }
 
+    private Ticket() : base(Guid.Empty)
+    {
+        Summary = string.Empty;
+    }
+
     public Guid WorkspaceId { get; private init; }
 
     public Guid RequesterId { get; private init; }
