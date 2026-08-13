@@ -1,5 +1,4 @@
 using Ticketing.Api;
-using Ticketing.Application.Abstractions;
 using Ticketing.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,13 +14,7 @@ app.UseExceptionHandler();
 app.UseHttpsRedirection();
 
 app.MapHealthChecks("/health");
-
-app.MapGet("/api/v2/system", (IClock clock) => Results.Ok(new
-{
-    service = "ticketing-api",
-    version = "v2",
-    utcNow = clock.UtcNow
-}));
+app.MapV2Endpoints();
 
 app.Run();
 
