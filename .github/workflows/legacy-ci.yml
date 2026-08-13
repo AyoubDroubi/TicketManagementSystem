@@ -1,0 +1,41 @@
+name: Legacy V1 CI
+
+on:
+  pull_request:
+    paths:
+      - 'Domain/**'
+      - 'Infrastructure/**'
+      - 'TicketManagementUI/**'
+      - 'TicketManagementSystem.sln'
+      - '.github/workflows/legacy-ci.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'Domain/**'
+      - 'Infrastructure/**'
+      - 'TicketManagementUI/**'
+      - 'TicketManagementSystem.sln'
+      - '.github/workflows/legacy-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build legacy V1 reference
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore TicketManagementSystem.sln
+
+      - name: Build
+        run: dotnet build TicketManagementSystem.sln --configuration Release --no-restore
