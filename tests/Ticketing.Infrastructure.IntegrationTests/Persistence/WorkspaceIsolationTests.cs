@@ -24,35 +24,21 @@ public sealed class WorkspaceIsolationTests
         await using (var setup = CreateContext(connectionString, workspaceA.Id))
         {
             await setup.Database.EnsureDeletedAsync(cancellationToken);
-            await setup.Database.EnsureCreatedAsync(cancellationToken);
+            await setup.Database.MigrateAsync(cancellationToken);
             setup.Workspaces.AddRange(workspaceA, workspaceB);
-            setup.Tickets.Add(Ticket.Create(
-                workspaceA.Id,
-                Guid.CreateVersion7(),
-                "Alpha ticket",
-                null,
-                TicketPriority.High,
-                now));
-            setup.Tickets.Add(Ticket.Create(
-                workspaceB.Id,
-                Guid.CreateVersion7(),
-                "Beta ticket",
-                null,
-                TicketPriority.Normal,
-                now));
+            setup.Tickets.Add(Ticket.Create(workspaceA.Id, Guid.CreateVersion7(), "Alpha ticket", null, TicketPriority.High, now));
+            setup.Tickets.Add(Ticket.Create(workspaceB.Id, Guid.CreateVersion7(), "Beta ticket", null, TicketPriority.Normal, now));
             await setup.SaveChangesAsync(cancellationToken);
         }
 
         await using var alphaContext = CreateContext(connectionString, workspaceA.Id);
         await using var betaContext = CreateContext(connectionString, workspaceB.Id);
-
         var alphaTickets = await alphaContext.Tickets.AsNoTracking().ToListAsync(cancellationToken);
         var betaTickets = await betaContext.Tickets.AsNoTracking().ToListAsync(cancellationToken);
 
         Assert.Single(alphaTickets);
         Assert.Equal("Alpha ticket", alphaTickets[0].Summary);
         Assert.Equal(workspaceA.Id, alphaTickets[0].WorkspaceId);
-
         Assert.Single(betaTickets);
         Assert.Equal("Beta ticket", betaTickets[0].Summary);
         Assert.Equal(workspaceB.Id, betaTickets[0].WorkspaceId);
@@ -63,7 +49,6 @@ public sealed class WorkspaceIsolationTests
         var options = new DbContextOptionsBuilder<TicketingDbContext>()
             .UseNpgsql(connectionString)
             .Options;
-
         return new TicketingDbContext(options, new TestWorkspaceContext(workspaceId));
     }
 
