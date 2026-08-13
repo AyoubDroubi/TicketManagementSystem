@@ -32,6 +32,6 @@ internal static class PersistenceModel
         workspaces.Property(item => item.Name).HasMaxLength(Workspace.MaxNameLength).IsRequired();
         workspaces.Property(item => item.Slug).HasMaxLength(Workspace.MaxSlugLength).IsRequired();
         workspaces.Property(item => item.Status).HasConversion<string>().HasMaxLength(24).IsRequired();
-        workspaces.HasIndex(item => item.Slug);
+        workspaces.HasIndex(item => item.Slug).IsUnique();
     }
 }
