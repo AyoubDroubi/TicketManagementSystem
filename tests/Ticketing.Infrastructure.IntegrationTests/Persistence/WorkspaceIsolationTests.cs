@@ -12,6 +12,7 @@ public sealed class WorkspaceIsolationTests
     [Fact]
     public async Task TicketQueries_AreAutomaticallyScopedToCurrentWorkspace()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var connectionString = Environment.GetEnvironmentVariable("TEST_POSTGRES_CONNECTION_STRING");
         Assert.False(string.IsNullOrWhiteSpace(connectionString),
             "TEST_POSTGRES_CONNECTION_STRING must point to a disposable PostgreSQL test database.");
@@ -22,8 +23,8 @@ public sealed class WorkspaceIsolationTests
 
         await using (var setup = CreateContext(connectionString, workspaceA.Id))
         {
-            await setup.Database.EnsureDeletedAsync();
-            await setup.Database.EnsureCreatedAsync();
+            await setup.Database.EnsureDeletedAsync(cancellationToken);
+            await setup.Database.EnsureCreatedAsync(cancellationToken);
             setup.Workspaces.AddRange(workspaceA, workspaceB);
             setup.Tickets.Add(Ticket.Create(
                 workspaceA.Id,
@@ -39,14 +40,14 @@ public sealed class WorkspaceIsolationTests
                 null,
                 TicketPriority.Normal,
                 now));
-            await setup.SaveChangesAsync();
+            await setup.SaveChangesAsync(cancellationToken);
         }
 
         await using var alphaContext = CreateContext(connectionString, workspaceA.Id);
         await using var betaContext = CreateContext(connectionString, workspaceB.Id);
 
-        var alphaTickets = await alphaContext.Tickets.AsNoTracking().ToListAsync();
-        var betaTickets = await betaContext.Tickets.AsNoTracking().ToListAsync();
+        var alphaTickets = await alphaContext.Tickets.AsNoTracking().ToListAsync(cancellationToken);
+        var betaTickets = await betaContext.Tickets.AsNoTracking().ToListAsync(cancellationToken);
 
         Assert.Single(alphaTickets);
         Assert.Equal("Alpha ticket", alphaTickets[0].Summary);
