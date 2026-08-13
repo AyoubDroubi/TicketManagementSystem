@@ -1,0 +1,40 @@
+name: V2 CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'TicketManagementSystem.V2.slnx'
+      - 'global.json'
+      - '.github/workflows/v2-ci.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'TicketManagementSystem.V2.slnx'
+      - 'global.json'
+      - '.github/workflows/v2-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build V2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.302'
+
+      - name: Restore
+        run: dotnet restore TicketManagementSystem.V2.slnx
+
+      - name: Build
+        run: dotnet build TicketManagementSystem.V2.slnx --configuration Release --no-restore
