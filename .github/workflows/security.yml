@@ -24,12 +24,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  dependency-review:
-    name: Dependency review
-    if: github.event_name == 'pull_request'
+  package-audit:
+    name: NuGet package audit
     runs-on: ubuntu-latest
     steps:
-      - name: Dependency review
-        uses: actions/dependency-review-action@v5
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
         with:
-          fail-on-severity: high
+          dotnet-version: '10.0.302'
+
+      - name: Audit restore
+        run: dotnet restore TicketManagementSystem.V2.slnx -p:NuGetAudit=true -p:NuGetAuditMode=all -p:NuGetAuditLevel=high -p:TreatWarningsAsErrors=true
