@@ -1,6 +1,7 @@
 using Ticketing.Domain.Common;
 using Ticketing.Domain.Tickets;
 using Ticketing.Domain.Tickets.Events;
+using Xunit;
 
 namespace Ticketing.Domain.Tests.Tickets;
 
