@@ -23,8 +23,8 @@ public sealed class TicketingDbContext : DbContext, IUnitOfWork
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(TicketingDbContext).Assembly);
+        PersistenceModel.Configure(modelBuilder);
         modelBuilder.Entity<Ticket>()
-            .HasQueryFilter(ticket => ticket.WorkspaceId == _workspaceContext.WorkspaceId);
+            .HasQueryFilter(item => item.WorkspaceId == _workspaceContext.WorkspaceId);
     }
 }
