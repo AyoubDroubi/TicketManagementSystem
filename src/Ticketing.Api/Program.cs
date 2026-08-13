@@ -1,3 +1,4 @@
+using Ticketing.Api;
 using Ticketing.Application;
 using Ticketing.Application.Abstractions;
 using Ticketing.Infrastructure;
@@ -6,6 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddProblemDetails();
 builder.Services.AddHealthChecks();
+builder.Services.AddApiV2();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
