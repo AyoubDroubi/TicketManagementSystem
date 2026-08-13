@@ -8,6 +8,15 @@ internal static class PersistenceModel
 {
     public static void Configure(ModelBuilder modelBuilder)
     {
+        var workspaces = modelBuilder.Entity<Workspace>();
+        workspaces.ToTable("workspaces");
+        workspaces.HasKey(item => item.Id);
+        workspaces.Property(item => item.Id).ValueGeneratedNever();
+        workspaces.Property(item => item.Name).HasMaxLength(Workspace.MaxNameLength).IsRequired();
+        workspaces.Property(item => item.Slug).HasMaxLength(Workspace.MaxSlugLength).IsRequired();
+        workspaces.Property(item => item.Status).HasConversion<string>().HasMaxLength(24).IsRequired();
+        workspaces.HasIndex(item => item.Slug).IsUnique();
+
         var tickets = modelBuilder.Entity<Ticket>();
         tickets.ToTable("tickets");
         tickets.HasKey(item => item.Id);
@@ -21,17 +30,12 @@ internal static class PersistenceModel
         tickets.Property(item => item.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
         tickets.Property(item => item.CreatedAtUtc).IsRequired();
         tickets.Property(item => item.UpdatedAtUtc).IsRequired();
+        tickets.HasOne<Workspace>()
+            .WithMany()
+            .HasForeignKey(item => item.WorkspaceId)
+            .OnDelete(DeleteBehavior.Restrict);
         tickets.HasIndex(item => new { item.WorkspaceId, item.Status, item.CreatedAtUtc });
         tickets.HasIndex(item => new { item.WorkspaceId, item.Priority, item.CreatedAtUtc });
         tickets.HasIndex(item => new { item.WorkspaceId, item.RequesterId, item.CreatedAtUtc });
-
-        var workspaces = modelBuilder.Entity<Workspace>();
-        workspaces.ToTable("workspaces");
-        workspaces.HasKey(item => item.Id);
-        workspaces.Property(item => item.Id).ValueGeneratedNever();
-        workspaces.Property(item => item.Name).HasMaxLength(Workspace.MaxNameLength).IsRequired();
-        workspaces.Property(item => item.Slug).HasMaxLength(Workspace.MaxSlugLength).IsRequired();
-        workspaces.Property(item => item.Status).HasConversion<string>().HasMaxLength(24).IsRequired();
-        workspaces.HasIndex(item => item.Slug).IsUnique();
     }
 }
