@@ -1,13 +1,11 @@
 using Ticketing.Application;
 using Ticketing.Application.Abstractions;
 using Ticketing.Infrastructure;
-using Ticketing.Infrastructure.Time;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddProblemDetails();
 builder.Services.AddHealthChecks();
-builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
