@@ -11,7 +11,8 @@ public abstract class Entity<TId> where TId : notnull
 
     public TId Id { get; protected init; }
 
-    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+    public IReadOnlyCollection<IDomainEvent> GetDomainEvents()
+        => _domainEvents.AsReadOnly();
 
     protected void RaiseDomainEvent(IDomainEvent domainEvent)
         => _domainEvents.Add(domainEvent);
