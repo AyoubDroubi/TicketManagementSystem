@@ -1,0 +1,61 @@
+name: V2 CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'TicketManagementSystem.V2.slnx'
+      - 'global.json'
+      - '.github/workflows/v2-ci.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'TicketManagementSystem.V2.slnx'
+      - 'global.json'
+      - '.github/workflows/v2-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and test V2
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: ticketing_test
+          POSTGRES_PASSWORD: ticketing_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ticketing_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.302'
+
+      - name: Restore
+        run: dotnet restore TicketManagementSystem.V2.slnx
+
+      - name: Build
+        run: dotnet build TicketManagementSystem.V2.slnx --configuration Release --no-restore
+
+      - name: Test
+        env:
+          TEST_POSTGRES_CONNECTION_STRING: Host=localhost;Port=5432;Database=ticketing_test;Username=postgres;Password=ticketing_ci_only
+        run: dotnet test TicketManagementSystem.V2.slnx --configuration Release --no-build
