@@ -10,5 +10,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Ticketing.Application\Ticketing.Application.csproj" />
     <ProjectReference Include="..\Ticketing.Infrastructure\Ticketing.Infrastructure.csproj" />
+    <ProjectReference Include="..\Ticketing.ServiceDefaults\Ticketing.ServiceDefaults.csproj" />
   </ItemGroup>
 </Project>
