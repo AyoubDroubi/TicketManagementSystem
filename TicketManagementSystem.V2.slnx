@@ -5,4 +5,7 @@
     <Project Path="src/Ticketing.Infrastructure/Ticketing.Infrastructure.csproj" />
     <Project Path="src/Ticketing.Api/Ticketing.Api.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Ticketing.Domain.Tests/Ticketing.Domain.Tests.csproj" />
+  </Folder>
 </Solution>
