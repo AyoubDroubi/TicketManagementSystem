@@ -1,0 +1,14 @@
+# Local runtime configuration and secrets
+appsettings.Local.json
+appsettings.*.local.json
+.env
+.env.*
+!.env.example
+
+# Developer-only credential notes
+User.txt
+*.secrets.json
+
+# Runtime uploads are not source code
+wwwroot/uploads/*
+!wwwroot/uploads/.gitkeep
