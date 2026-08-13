@@ -25,7 +25,7 @@ public sealed class TicketTests
         Assert.Equal(TicketStatus.New, ticket.Status);
         Assert.Equal(CreatedAt, ticket.CreatedAtUtc);
         Assert.Equal(CreatedAt, ticket.UpdatedAtUtc);
-        Assert.IsType<TicketCreatedDomainEvent>(Assert.Single(ticket.DomainEvents));
+        Assert.IsType<TicketCreatedDomainEvent>(Assert.Single(ticket.GetDomainEvents()));
     }
 
     [Fact]
@@ -40,7 +40,7 @@ public sealed class TicketTests
         Assert.Null(ticket.AssignedAgentId);
         Assert.Equal(TicketStatus.Assigned, ticket.Status);
         Assert.Equal(assignedAt, ticket.UpdatedAtUtc);
-        Assert.Contains(ticket.DomainEvents, x => x is TicketStatusChangedDomainEvent statusChanged
+        Assert.Contains(ticket.GetDomainEvents(), x => x is TicketStatusChangedDomainEvent statusChanged
             && statusChanged.PreviousStatus == TicketStatus.New
             && statusChanged.CurrentStatus == TicketStatus.Assigned);
     }
