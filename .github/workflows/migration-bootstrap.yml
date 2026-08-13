@@ -1,7 +1,15 @@
-name: Migration Bootstrap
+name: Migration Guard
 
 on:
   pull_request:
+    paths:
+      - 'src/Ticketing.Domain/**'
+      - 'src/Ticketing.Infrastructure/**'
+      - 'src/Ticketing.Api/**'
+      - '.github/workflows/migration-bootstrap.yml'
+  push:
+    branches:
+      - main
     paths:
       - 'src/Ticketing.Domain/**'
       - 'src/Ticketing.Infrastructure/**'
@@ -12,8 +20,8 @@ permissions:
   contents: read
 
 jobs:
-  generate:
-    name: Generate EF migration artifact
+  migration-guard:
+    name: Verify EF migration is current
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,15 +38,7 @@ jobs:
       - name: Install EF CLI
         run: dotnet tool install --tool-path ./.tools dotnet-ef --version 10.0.4
 
-      - name: Generate initial migration
+      - name: Verify no pending model changes
         env:
           ConnectionStrings__TicketingDatabase: Host=localhost;Database=ticketing_design
-        run: ./.tools/dotnet-ef migrations add InitialV2 --project src/Ticketing.Infrastructure/Ticketing.Infrastructure.csproj --startup-project src/Ticketing.Api/Ticketing.Api.csproj --context TicketingDbContext --output-dir Persistence/Migrations
-
-      - name: Upload migration
-        uses: actions/upload-artifact@v7
-        with:
-          name: ticketing-initial-migration
-          path: src/Ticketing.Infrastructure/Persistence/Migrations
-          retention-days: 1
-          if-no-files-found: error
+        run: ./.tools/dotnet-ef migrations has-pending-model-changes --project src/Ticketing.Infrastructure/Ticketing.Infrastructure.csproj --startup-project src/Ticketing.Api/Ticketing.Api.csproj --context TicketingDbContext
