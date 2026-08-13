@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Testcontainers.PostgreSql;
 using Ticketing.Application.Abstractions;
 using Ticketing.Domain.Tickets;
 using Ticketing.Domain.Workspaces;
@@ -13,15 +12,17 @@ public sealed class WorkspaceIsolationTests
     [Fact]
     public async Task TicketQueries_AreAutomaticallyScopedToCurrentWorkspace()
     {
-        await using var postgres = new PostgreSqlBuilder("postgres:17-alpine").Build();
-        await postgres.StartAsync();
+        var connectionString = Environment.GetEnvironmentVariable("TEST_POSTGRES_CONNECTION_STRING");
+        Assert.False(string.IsNullOrWhiteSpace(connectionString),
+            "TEST_POSTGRES_CONNECTION_STRING must point to a disposable PostgreSQL test database.");
 
         var now = new DateTimeOffset(2026, 8, 13, 18, 30, 0, TimeSpan.Zero);
         var workspaceA = Workspace.Create("Alpha Support", "alpha-support", now);
         var workspaceB = Workspace.Create("Beta Support", "beta-support", now);
 
-        await using (var setup = CreateContext(postgres.GetConnectionString(), workspaceA.Id))
+        await using (var setup = CreateContext(connectionString, workspaceA.Id))
         {
+            await setup.Database.EnsureDeletedAsync();
             await setup.Database.EnsureCreatedAsync();
             setup.Workspaces.AddRange(workspaceA, workspaceB);
             setup.Tickets.Add(Ticket.Create(
@@ -41,8 +42,8 @@ public sealed class WorkspaceIsolationTests
             await setup.SaveChangesAsync();
         }
 
-        await using var alphaContext = CreateContext(postgres.GetConnectionString(), workspaceA.Id);
-        await using var betaContext = CreateContext(postgres.GetConnectionString(), workspaceB.Id);
+        await using var alphaContext = CreateContext(connectionString, workspaceA.Id);
+        await using var betaContext = CreateContext(connectionString, workspaceB.Id);
 
         var alphaTickets = await alphaContext.Tickets.AsNoTracking().ToListAsync();
         var betaTickets = await betaContext.Tickets.AsNoTracking().ToListAsync();
