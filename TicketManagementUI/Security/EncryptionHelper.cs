@@ -1,29 +1,40 @@
-﻿using Jose;
+using Jose;
 using Newtonsoft.Json;
 using System.Text;
 
-namespace TicketManagementUI.Security
+namespace TicketManagementUI.Security;
+
+public sealed class EncryptionHelper<T> where T : class
 {
-    public class EncryptionHelper<T> where T : class
+    private const int A256KwKeySizeBytes = 32;
+    private readonly byte[] _secretKey;
+
+    public EncryptionHelper(IConfiguration configuration)
     {
-        byte[] secretKey;
-        private readonly IConfiguration configuration;
+        var configuredKey = configuration["JWEKey"];
 
-        public EncryptionHelper(IConfiguration configuration)
+        if (string.IsNullOrWhiteSpace(configuredKey))
         {
-            this.configuration = configuration;
-            secretKey = Encoding.UTF8.GetBytes(configuration["JWEKey"]);
+            throw new InvalidOperationException(
+                "JWEKey is not configured. Supply it through environment variables, user-secrets, or a secure secret provider.");
         }
 
-        public string Encode(object obj)
-        {
-            return JWT.Encode(obj, secretKey, JweAlgorithm.A256KW, JweEncryption.A256CBC_HS512);
-        }
+        _secretKey = Encoding.UTF8.GetBytes(configuredKey);
 
-        public T Decode(string token)
+        if (_secretKey.Length != A256KwKeySizeBytes)
         {
-            var result = JWT.Decode(token, secretKey, JweAlgorithm.A256KW, JweEncryption.A256CBC_HS512);
-            return JsonConvert.DeserializeObject<T>(result);
+            throw new InvalidOperationException(
+                $"JWEKey must be exactly {A256KwKeySizeBytes} UTF-8 bytes for A256KW.");
         }
+    }
+
+    public string Encode(object value)
+        => JWT.Encode(value, _secretKey, JweAlgorithm.A256KW, JweEncryption.A256CBC_HS512);
+
+    public T Decode(string token)
+    {
+        var payload = JWT.Decode(token, _secretKey, JweAlgorithm.A256KW, JweEncryption.A256CBC_HS512);
+        return JsonConvert.DeserializeObject<T>(payload)
+            ?? throw new InvalidOperationException("The decrypted payload could not be deserialized.");
     }
 }
